@@ -275,9 +275,13 @@ p{margin:0 0 1rem}
 .sum-row b{font-weight:400;text-align:right}
 .nav-btns{display:flex;gap:.7rem;margin-top:1.8rem;position:relative;z-index:2}
 .nav-btns .btn-primary{flex:1}
-.link-back{background:none;border:0;color:var(--ink-45);cursor:pointer;font-size:.9rem;display:inline-flex;align-items:center;
-  gap:.4rem;padding:.5rem 0;margin-bottom:.4rem}
-.link-back:hover{color:var(--ink)}
+.nav-btns .btn-ghost svg{width:18px;height:18px}
+.nav-btns .btn-ghost:has(>svg:only-child){padding-inline:1.1rem;flex:none}
+.link-back{background:none;border:1px solid var(--ink-14);border-radius:999px;color:var(--ink-70);cursor:pointer;
+  font-size:.88rem;display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1.1rem .55rem .85rem;margin-bottom:1rem;
+  transition:.18s}
+.link-back:hover{color:var(--ink);border-color:var(--ink);background:var(--ink-08)}
+.link-back svg{width:17px;height:17px;flex:none}
 
 .done-card{text-align:center;max-width:520px;margin:1rem auto;position:relative;z-index:2}
 .done-mark{width:78px;height:78px;border-radius:50%;background:var(--amber-18);color:var(--amber-d);display:grid;place-items:center;
@@ -540,12 +544,14 @@ function seed(){
     servicos:[
       {id:'s1',nome:'Corte de cabelo',desc:'',preco:40,duracao:null,ativo:true},
       {id:'s2',nome:'Barba',desc:'',preco:25,duracao:null,ativo:true},
-      {id:'s4',nome:'Corte + Barba',desc:'',preco:60,duracao:null,ativo:true},
-      {id:'s3',nome:'Sobrancelha',desc:'',preco:5,duracao:null,ativo:true},
-      {id:'s4',nome:'Coloração',desc:'',preco:"Consultar com o Dhow!",duracao:null,ativo:true}
+      {id:'s3',nome:'Corte + Barba',desc:'',preco:60,duracao:null,ativo:true},
+      {id:'s4',nome:'Sobrancelha',desc:'',preco:5,duracao:null,ativo:true},
+      {id:'s5',nome:'Cploração',desc:'',preco:"Verificar com o dhow",duracao:null,ativo:true}
     ],
     /* horários NÃO inventados — o barbeiro define */
     horarios:{
+      /* modo livre: o cliente escolhe qualquer horário e o barbeiro confirma depois */
+      livre:true, livreIni:'08:00', livreFim:'20:00',
       configurado:false, intervalo:30,
       almoco:{ativo:false,ini:'12:00',fim:'13:00'},
       dias:[0,1,2,3,4,5,6].map(d=>({aberto:false,ini:'09:00',fim:'19:00'}))
@@ -610,17 +616,22 @@ function overlap(a1,a2,b1,b2){ return a1 < b2 && b1 < a2; }
 
 function bloqueadoNoDia(k){ return DB.bloqueios.filter(b => k >= b.dataIni && k <= (b.dataFim||b.dataIni)); }
 
+/* Horário do dia: no modo livre vale a faixa ampla; senão, os dias configurados. */
+function cfgDia(k){
+  const h=DB.horarios;
+  if(h.livre||!h.configurado) return {aberto:true, ini:h.livreIni||'08:00', fim:h.livreFim||'20:00'};
+  return h.dias[fromKey(k).getDay()];
+}
+function agendaLivre(){ return DB.horarios.livre || !DB.horarios.configurado; }
 function diaAberto(k){
-  if(!DB.horarios.configurado) return false;
-  const cfg = DB.horarios.dias[fromKey(k).getDay()];
-  if(!cfg.aberto) return false;
+  if(!cfgDia(k).aberto) return false;
   if(bloqueadoNoDia(k).some(b=>b.diaTodo)) return false;
   return true;
 }
 
 function slotsDisponiveis(k, dur){
   if(!diaAberto(k)) return [];
-  const cfg = DB.horarios.dias[fromKey(k).getDay()];
+  const cfg = cfgDia(k);
   const step = DB.horarios.intervalo, ini = toMin(cfg.ini), fim = toMin(cfg.fim);
   const almoco = DB.horarios.almoco;
   const blocos = bloqueadoNoDia(k).filter(b=>!b.diaTodo).map(b=>[toMin(b.ini),toMin(b.fim)]);
@@ -895,8 +906,10 @@ function progress(){
 function renderStage(){
   const w=$('#stage-wrap'); if(!w) return;
   if(B.feito){ w.innerHTML=stageDone(); return; }
-  const back = B.step>0 ? `<button class="link-back" onclick="stepGo(${B.step-1})">${I.left} Voltar</button>` : '';
-  w.innerHTML = progress()+back+`<div class="stage">${[stageServico,stageData,stageHora,stagePagamento,stageDados,stageResumo][B.step]()}</div>`;
+  const back = B.step>0 ? `<button class="link-back" onclick="stepGo(${B.step-1})">${I.left} ${PASSOS[B.step-1]}</button>` : '';
+  const rodape = (B.step>0 && B.step<4)
+    ? `<div class="nav-btns"><button class="btn btn-ghost btn-block" onclick="stepGo(${B.step-1})">${I.left} Voltar para ${PASSOS[B.step-1].toLowerCase()}</button></div>` : '';
+  w.innerHTML = progress()+back+`<div class="stage">${[stageServico,stageData,stageHora,stagePagamento,stageDados,stageResumo][B.step]()}</div>`+rodape;
   const f=w.querySelector('[data-focus]'); if(f) f.focus({preventScroll:true});
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -918,15 +931,11 @@ function pickSvc(id){ B.servicoId=id; setTimeout(()=>stepGo(1),140); renderStage
 
 /* 2 — data */
 function stageData(){
+  const dur=svcDur(servico(B.servicoId));
   const dias=proximosDias(7,B.base);
   const d0=fromKey(dias[0]);
   const podeVoltar = B.base>hoje();
-
-  return `<div class="step-head">
-    <h2>Escolha uma data</h2>
-    <p>${esc(servico(B.servicoId).nome)}</p>
-  </div>
-
+  return `<div class="step-head"><h2>Escolha uma data</h2><p>${esc(servico(B.servicoId).nome)} · ${durTxt(dur)}</p></div>
   <div class="week-nav">
     <b>${MES[d0.getMonth()]} ${d0.getFullYear()}</b>
     <span style="display:flex;gap:.4rem">
@@ -934,64 +943,28 @@ function stageData(){
       <button class="mini-btn" onclick="semana(7)" aria-label="Próxima semana">${I.right}</button>
     </span>
   </div>
-
   <div class="week">
     ${dias.map(k=>{
-      const d=fromKey(k);
-
-      return `<button class="day ${B.data===k?'on':''}" onclick="pickData('${k}')">
-        <em>${DOW3[d.getDay()]}</em>
-        <b>${String(d.getDate()).padStart(2,'0')}</b>
-        <small>Disponível</small>
-      </button>`;
+      const d=fromKey(k), livre=diaAberto(k)?slotsDisponiveis(k,dur).length:0;
+      const off=!livre;
+      return `<button class="day ${off?'off':''} ${B.data===k?'on':''}" ${off?'disabled':''} onclick="pickData('${k}')">
+        <em>${DOW3[d.getDay()]}</em><b>${String(d.getDate()).padStart(2,'0')}</b>
+        <small>${off?(diaAberto(k)?'cheio':'fechado'):livre+' livre'+(livre>1?'s':'')}</small></button>`;
     }).join('')}
   </div>
-
-  <p style="margin-top:1.2rem;font-size:.88rem;color:var(--ink-45)">
-    Escolha o dia em que você gostaria de ser atendido.
-    O horário será enviado ao barbeiro para confirmação.
-  </p>`;
+  <p style="margin-top:1.2rem;font-size:.88rem;color:var(--ink-45)">${agendaLivre()?'Escolha o melhor dia para você — o barbeiro confirma o horário em seguida.':'Dias fechados, feriados e bloqueios já aparecem indisponíveis.'}</p>`;
 }
 function semana(n){ const d=fromKey(B.base); d.setDate(d.getDate()+n); const k=key(d); B.base = k<hoje()?hoje():k; renderStage(); }
 function pickData(k){ B.data=k; B.hora=null; setTimeout(()=>stepGo(2),140); renderStage(); }
 
 /* 3 — horário */
 function stageHora(){
-  return `<div class="step-head">
-    <h2>Qual horário você gostaria?</h2>
-    <p>${longDate(B.data)}</p>
-  </div>
-
-  <div class="field">
-    <label for="i-hora">Horário desejado</label>
-    <input
-      id="i-hora"
-      type="time"
-      data-focus
-      value="${esc(B.hora||'')}"
-    >
-    <div class="err">Informe o horário desejado.</div>
-  </div>
-
-  <div class="nav-btns">
-    <button class="btn btn-primary btn-block" onclick="submitHora()">
-      Continuar
-    </button>
-  </div>
-
-  <p style="margin-top:1rem;font-size:.86rem;color:var(--ink-45)">
-    O horário será enviado ao barbeiro para confirmação.
-  </p>`;
-}
-
-function submitHora(){
-  const campo=$('#i-hora');
-  B.hora=campo.value;
-
-  const ok=!!B.hora;
-  campo.parentElement.classList.toggle('bad',!ok);
-
-  if(ok) stepGo(3);
+  const dur=svcDur(servico(B.servicoId));
+  const list=slotsDisponiveis(B.data,dur);
+  return `<div class="step-head"><h2>Escolha seu horário</h2><p>${longDate(B.data)} · ${durTxt(dur)} de atendimento</p></div>
+  ${list.length?`<div class="slots">${list.map(h=>`<button class="slot ${B.hora===h?'on':''}" onclick="pickHora('${h}')">${h}</button>`).join('')}</div>
+  ${agendaLivre()?`<p style="margin-top:1.2rem;font-size:.88rem;color:var(--ink-45)">O horário fica reservado como solicitação até o barbeiro confirmar.</p>`:''}`
+  :`<div class="empty">${I.clock}<p>Não há horários livres nesse dia.</p><button class="btn btn-ghost btn-sm" onclick="stepGo(1)">Escolher outra data</button></div>`}`;
 }
 function pickHora(h){ B.hora=h; setTimeout(()=>stepGo(3),140); renderStage(); }
 
@@ -1009,7 +982,8 @@ function stageDados(){
   <div class="field" id="f-nome"><label for="i-nome">Nome</label><input id="i-nome" data-focus value="${esc(B.nome)}" placeholder="Como podemos te chamar" autocomplete="name"><div class="err">Informe seu nome.</div></div>
   <div class="field" id="f-tel"><label for="i-tel">Telefone / WhatsApp</label><input id="i-tel" value="${esc(B.telefone)}" placeholder="(11) 90000-0000" inputmode="tel" autocomplete="tel" oninput="this.value=maskPhone(this.value)"><div class="err">Informe um telefone com DDD.</div></div>
   <div class="field"><label for="i-obs">Observação (opcional)</label><textarea id="i-obs" placeholder="Ex.: gostaria de manter o comprimento.">${esc(B.obs)}</textarea></div>
-  <div class="nav-btns"><button class="btn btn-primary btn-block" onclick="submitDados()">Continuar</button></div>`;
+  <div class="nav-btns"><button class="btn btn-ghost" onclick="stepGo(3)">${I.left}</button>
+    <button class="btn btn-primary" onclick="submitDados()">Continuar</button></div>`;
 }
 function submitDados(){
   B.nome=$('#i-nome').value.trim(); B.telefone=$('#i-tel').value.trim(); B.obs=$('#i-obs').value.trim();
@@ -1027,41 +1001,24 @@ function stageResumo(){
   if(B.obs) rows.push(['Observação',esc(B.obs)]);
   return `<div class="step-head"><h2>Confira seu agendamento</h2><p>Se estiver tudo certo, é só enviar a solicitação.</p></div>
   <div class="summary">${rows.map(r=>`<div class="sum-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>
-  <div class="nav-btns"><button class="btn btn-primary" onclick="confirmar()">Confirmar solicitação</button></div>
+  <div class="nav-btns"><button class="btn btn-ghost" onclick="stepGo(4)">${I.left}</button>
+    <button class="btn btn-primary" onclick="confirmar()">Confirmar solicitação</button></div>
   <p style="margin-top:1rem;font-size:.86rem;color:var(--ink-45)">A solicitação vai para o barbeiro. Você recebe a confirmação do horário em seguida.</p>`;
 }
 
 function confirmar(){
-
   const s=servico(B.servicoId);
-
+  const livre=slotsDisponiveis(B.data,svcDur(s));
+  if(!livre.includes(B.hora)){ toast('Esse horário acabou de ser ocupado. Escolha outro.'); B.hora=null; stepGo(2); return; }
   const a={
     id:uid(), codigo:'DB-'+uid().slice(0,4).toUpperCase(),
-
-    cliente:B.nome,
-    telefone:B.telefone,
-    telDigits:onlyDigits(B.telefone),
-
-    servicoId:B.servicoId,
-    data:B.data,
-    hora:B.hora,
-    duracao:svcDur(s),
-
-    pagamento:B.pagamento,
-    obs:B.obs,
-    status:'pendente',
-    criadoEm:new Date().toISOString()
+    cliente:B.nome, telefone:B.telefone, telDigits:onlyDigits(B.telefone),
+    servicoId:B.servicoId, data:B.data, hora:B.hora, duracao:svcDur(s),
+    pagamento:B.pagamento, obs:B.obs, status:'pendente', criadoEm:new Date().toISOString()
   };
-
-  DB.agendamentos.push(a);
-  save();
-
-  try{
-    localStorage.setItem('dhow_last_phone',a.telDigits);
-  }catch(e){}
-
-  B.feito=a;
-  renderStage();
+  DB.agendamentos.push(a); save();
+  try{ localStorage.setItem('dhow_last_phone',a.telDigits); }catch(e){}
+  B.feito=a; renderStage();
 }
 
 function stageDone(){
@@ -1221,11 +1178,11 @@ function admDashboard(){
   const prox=doDia.find(a=>a.hora>=agora&&a.status!=='concluido');
   const pend=DB.agendamentos.filter(a=>a.status==='pendente');
   const feitos=DB.agendamentos.filter(a=>a.status==='concluido').length;
-  const livres=DB.horarios.configurado?slotsDisponiveis(k,DB.horarios.intervalo).length:0;
+  const livres=slotsDisponiveis(k,DB.horarios.intervalo).length;
   const semPreco=DB.servicos.filter(s=>s.ativo&&s.preco==null).length;
   const semDur=DB.servicos.filter(s=>s.ativo&&!s.duracao).length;
   const checks=[
-    [DB.horarios.configurado,'Definir dias e horários de atendimento','horarios'],
+    ...(agendaLivre()?[]:[[DB.horarios.configurado,'Definir dias e horários de atendimento','horarios']]),
     [semPreco===0,`Cadastrar o preço dos serviços${semPreco?` (${semPreco} sem valor)`:''}`,'servicos'],
     [semDur===0,`Definir a duração dos serviços${semDur?` (${semDur} sem duração)`:''}`,'servicos'],
     [DB.config.senha!=='dhow2026','Trocar a senha padrão do painel','config'],
@@ -1405,9 +1362,16 @@ function admHorarios(){
   const h=DB.horarios;
   return `<h2>Horários de atendimento</h2>
   <p class="adm-sub">Os horários livres do site são gerados a partir daqui.</p>
-  ${h.configurado?'':`<div class="notice" style="background:rgba(224,123,30,.12);border-color:rgba(224,123,30,.3);color:var(--cream)">${I.info}
-    <div>Enquanto os dias não forem salvos, o site não mostra datas disponíveis. Marque os dias abertos e salve.</div></div>`}
   <div class="card" style="margin-bottom:1.2rem">
+    <div class="day-row" style="border:0;padding-top:0">
+      <div style="display:flex;align-items:center;gap:.8rem"><label class="sw"><input type="checkbox" id="h-livre" ${h.livre?'checked':''} onchange="toggleLivre(this.checked)"><i></i></label>
+        <span>Agenda livre</span></div>
+      <div class="times"><input type="time" id="h-lvi" value="${h.livreIni||'08:00'}"><span style="opacity:.5">às</span><input type="time" id="h-lvf" value="${h.livreFim||'20:00'}"></div>
+    </div>
+    <p style="color:rgba(251,246,231,.45);font-size:.85rem;margin:.4rem 0 0">Ligada, o cliente escolhe qualquer dia e horário dentro dessa faixa e você decide na hora de confirmar. Desligue para valer só a grade fixa abaixo.</p>
+  </div>
+  <div class="card" style="margin-bottom:1.2rem;${h.livre?'opacity:.5':''}" id="grade-fixa">
+    <h3 style="color:var(--cream);margin-bottom:.8rem">Grade fixa</h3>
     ${DB.horarios.dias.map((d,i)=>`<div class="day-row">
       <div style="display:flex;align-items:center;gap:.8rem;min-width:150px">
         <label class="sw"><input type="checkbox" id="d${i}" ${d.aberto?'checked':''}><i></i></label>
@@ -1425,8 +1389,11 @@ function admHorarios(){
   </div>
   <button class="btn btn-primary btn-block" onclick="salvarHorarios()">Salvar horários</button>`;
 }
+function toggleLivre(on){ const g=$('#grade-fixa'); if(g) g.style.opacity=on?'.5':'1'; }
 function salvarHorarios(){
   DB.horarios.dias=DB.horarios.dias.map((d,i)=>({aberto:$('#d'+i).checked,ini:$('#i'+i).value,fim:$('#f'+i).value}));
+  DB.horarios.livre=$('#h-livre').checked;
+  DB.horarios.livreIni=$('#h-lvi').value; DB.horarios.livreFim=$('#h-lvf').value;
   DB.horarios.intervalo=parseInt($('#h-int').value);
   DB.horarios.almoco={ativo:$('#h-alm').checked,ini:$('#h-alm-i').value,fim:$('#h-alm-f').value};
   DB.horarios.configurado=DB.horarios.dias.some(d=>d.aberto);
