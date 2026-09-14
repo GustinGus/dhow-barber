@@ -912,15 +912,15 @@ function pickSvc(id){ B.servicoId=id; setTimeout(()=>stepGo(1),140); renderStage
 
 /* 2 — data */
 function stageData(){
-  if(!DB.horarios.configurado){
-    return `<div class="step-head"><h2>Escolha uma data</h2></div>
-    <div class="notice">${I.info}<div><b>A agenda ainda não está aberta.</b><br>Os dias e horários de atendimento precisam ser definidos no painel do barbeiro. Enquanto isso, fale pelo WhatsApp <a href="https://wa.me/${DB.config.whatsapp}" target="_blank" rel="noopener" style="color:var(--amber-d)">${esc(DB.config.telefone)}</a>.</div></div>`;
-  }
-  const dur=svcDur(servico(B.servicoId));
   const dias=proximosDias(7,B.base);
   const d0=fromKey(dias[0]);
   const podeVoltar = B.base>hoje();
-  return `<div class="step-head"><h2>Escolha uma data</h2><p>${esc(servico(B.servicoId).nome)} · ${durTxt(dur)}</p></div>
+
+  return `<div class="step-head">
+    <h2>Escolha uma data</h2>
+    <p>${esc(servico(B.servicoId).nome)}</p>
+  </div>
+
   <div class="week-nav">
     <b>${MES[d0.getMonth()]} ${d0.getFullYear()}</b>
     <span style="display:flex;gap:.4rem">
@@ -928,27 +928,64 @@ function stageData(){
       <button class="mini-btn" onclick="semana(7)" aria-label="Próxima semana">${I.right}</button>
     </span>
   </div>
+
   <div class="week">
     ${dias.map(k=>{
-      const d=fromKey(k), livre=diaAberto(k)?slotsDisponiveis(k,dur).length:0;
-      const off=!livre;
-      return `<button class="day ${off?'off':''} ${B.data===k?'on':''}" ${off?'disabled':''} onclick="pickData('${k}')">
-        <em>${DOW3[d.getDay()]}</em><b>${String(d.getDate()).padStart(2,'0')}</b>
-        <small>${off?(diaAberto(k)?'cheio':'fechado'):livre+' livre'+(livre>1?'s':'')}</small></button>`;
+      const d=fromKey(k);
+
+      return `<button class="day ${B.data===k?'on':''}" onclick="pickData('${k}')">
+        <em>${DOW3[d.getDay()]}</em>
+        <b>${String(d.getDate()).padStart(2,'0')}</b>
+        <small>Disponível</small>
+      </button>`;
     }).join('')}
   </div>
-  <p style="margin-top:1.2rem;font-size:.88rem;color:var(--ink-45)">Dias fechados, feriados e bloqueios já aparecem indisponíveis.</p>`;
+
+  <p style="margin-top:1.2rem;font-size:.88rem;color:var(--ink-45)">
+    Escolha o dia em que você gostaria de ser atendido.
+    O horário será enviado ao barbeiro para confirmação.
+  </p>`;
 }
 function semana(n){ const d=fromKey(B.base); d.setDate(d.getDate()+n); const k=key(d); B.base = k<hoje()?hoje():k; renderStage(); }
 function pickData(k){ B.data=k; B.hora=null; setTimeout(()=>stepGo(2),140); renderStage(); }
 
 /* 3 — horário */
 function stageHora(){
-  const dur=svcDur(servico(B.servicoId));
-  const list=slotsDisponiveis(B.data,dur);
-  return `<div class="step-head"><h2>Escolha seu horário</h2><p>${longDate(B.data)} · ${durTxt(dur)} de atendimento</p></div>
-  ${list.length?`<div class="slots">${list.map(h=>`<button class="slot ${B.hora===h?'on':''}" onclick="pickHora('${h}')">${h}</button>`).join('')}</div>`
-  :`<div class="empty">${I.clock}<p>Não há horários livres nesse dia.</p><button class="btn btn-ghost btn-sm" onclick="stepGo(1)">Escolher outra data</button></div>`}`;
+  return `<div class="step-head">
+    <h2>Qual horário você gostaria?</h2>
+    <p>${longDate(B.data)}</p>
+  </div>
+
+  <div class="field">
+    <label for="i-hora">Horário desejado</label>
+    <input
+      id="i-hora"
+      type="time"
+      data-focus
+      value="${esc(B.hora||'')}"
+    >
+    <div class="err">Informe o horário desejado.</div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="btn btn-primary btn-block" onclick="submitHora()">
+      Continuar
+    </button>
+  </div>
+
+  <p style="margin-top:1rem;font-size:.86rem;color:var(--ink-45)">
+    O horário será enviado ao barbeiro para confirmação.
+  </p>`;
+}
+
+function submitHora(){
+  const campo=$('#i-hora');
+  B.hora=campo.value;
+
+  const ok=!!B.hora;
+  campo.parentElement.classList.toggle('bad',!ok);
+
+  if(ok) stepGo(3);
 }
 function pickHora(h){ B.hora=h; setTimeout(()=>stepGo(3),140); renderStage(); }
 
@@ -989,18 +1026,36 @@ function stageResumo(){
 }
 
 function confirmar(){
+
   const s=servico(B.servicoId);
-  const livre=slotsDisponiveis(B.data,svcDur(s));
-  if(!livre.includes(B.hora)){ toast('Esse horário acabou de ser ocupado. Escolha outro.'); B.hora=null; stepGo(2); return; }
+
   const a={
     id:uid(), codigo:'DB-'+uid().slice(0,4).toUpperCase(),
-    cliente:B.nome, telefone:B.telefone, telDigits:onlyDigits(B.telefone),
-    servicoId:B.servicoId, data:B.data, hora:B.hora, duracao:svcDur(s),
-    pagamento:B.pagamento, obs:B.obs, status:'pendente', criadoEm:new Date().toISOString()
+
+    cliente:B.nome,
+    telefone:B.telefone,
+    telDigits:onlyDigits(B.telefone),
+
+    servicoId:B.servicoId,
+    data:B.data,
+    hora:B.hora,
+    duracao:svcDur(s),
+
+    pagamento:B.pagamento,
+    obs:B.obs,
+    status:'pendente',
+    criadoEm:new Date().toISOString()
   };
-  DB.agendamentos.push(a); save();
-  try{ localStorage.setItem('dhow_last_phone',a.telDigits); }catch(e){}
-  B.feito=a; renderStage();
+
+  DB.agendamentos.push(a);
+  save();
+
+  try{
+    localStorage.setItem('dhow_last_phone',a.telDigits);
+  }catch(e){}
+
+  B.feito=a;
+  renderStage();
 }
 
 function stageDone(){
