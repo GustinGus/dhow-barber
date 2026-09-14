@@ -579,6 +579,61 @@ function seed(){
 var DB = seed();
 const save = () => Store.save(DB);
 
+/* ---------- Versão dos dados ---------- */
+const DATA_VERSION = 2;
+
+function migrateDB(saved) {
+  const defaults = seed();
+
+  if (!saved) {
+    const fresh = defaults;
+    fresh.dataVersion = DATA_VERSION;
+    return fresh;
+  }
+
+  const db = Object.assign({}, defaults, saved);
+
+  db.config = Object.assign({}, defaults.config, saved.config || {});
+  db.horarios = Object.assign({}, defaults.horarios, saved.horarios || {});
+
+  /* MIGRAÇÃO V2 */
+  if ((saved.dataVersion || 1) < 2) {
+
+    db.servicos = defaults.servicos.map(servicoNovo => {
+
+      const antigo = (saved.servicos || [])
+        .find(s => s.id === servicoNovo.id);
+
+      return {
+        ...servicoNovo,
+        duracao: antigo?.duracao ?? servicoNovo.duracao,
+        ativo: antigo?.ativo ?? servicoNovo.ativo
+      };
+    });
+
+  }
+
+  /* Mantém portfólio existente e adiciona novos itens padrão */
+  if (saved.portfolio) {
+
+    db.portfolio = [...saved.portfolio];
+
+    const tem = new Set(db.portfolio.map(p => p.id));
+    const removidas = new Set(saved.portfolioRemovidas || []);
+
+    defaults.portfolio.forEach(p => {
+      if (!tem.has(p.id) && !removidas.has(p.id)) {
+        db.portfolio.push(p);
+      }
+    });
+
+  }
+
+  db.dataVersion = DATA_VERSION;
+
+  return db;
+}
+
 /* ---------- Utilidades ---------- */
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2,9);
@@ -1573,19 +1628,16 @@ window.addEventListener('hashchange',render);
 
 /* ---------- Boot ---------- */
 (async function init(){
-  const saved=await Store.load();
-  if(saved){
-    DB=Object.assign(seed(),saved);
-    DB.config=Object.assign(seed().config,saved.config||{});
-    DB.horarios=Object.assign(seed().horarios,saved.horarios||{});
-    /* fotos novas do catálogo padrão entram sem apagar as que o barbeiro cadastrou */
-    if(saved.portfolio){
-      const tem=new Set(saved.portfolio.map(p=>p.id));
-      const removidas=new Set(saved.portfolioRemovidas||[]);
-      seed().portfolio.forEach(p=>{ if(!tem.has(p.id)&&!removidas.has(p.id)) DB.portfolio.push(p); });
-    }
-  }
+
+  const saved = await Store.load();
+
+  DB = migrateDB(saved);
+
+  // Salva os dados já migrados
+  save();
+
   render();
+
 })();
 </script>
 </body>
