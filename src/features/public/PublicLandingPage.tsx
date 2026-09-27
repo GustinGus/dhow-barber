@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { readMigratedLegacyDatabase } from "@/lib/storage/legacy-migration";
+import { dataRepositories } from "@/lib/data";
 import AboutSection from "./components/AboutSection";
 import HeroSection from "./components/HeroSection";
 import LocationSection from "./components/LocationSection";
@@ -8,7 +8,7 @@ import PublicFooter from "./components/PublicFooter";
 import PublicHeader from "./components/PublicHeader";
 import ServicesSection from "./components/ServicesSection";
 import "./landing.css";
-import { defaultPublicContent, toPublicSiteContent } from "./public-content";
+import { defaultPublicContent } from "./public-content";
 
 export default function PublicLandingPage() {
   const [content, setContent] = useState(defaultPublicContent);
@@ -16,10 +16,10 @@ export default function PublicLandingPage() {
   useEffect(() => {
     let active = true;
 
-    void readMigratedLegacyDatabase()
-      .then((database) => {
+    void dataRepositories.siteContent.getSiteContent()
+      .then((siteContent) => {
         if (active) {
-          setContent(toPublicSiteContent(database));
+          setContent(siteContent);
         }
       })
       .catch(() => {

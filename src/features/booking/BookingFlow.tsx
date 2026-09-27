@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  appendLegacyAppointment,
   createFreshLegacyDatabase,
   formatLegacyDate,
   formatLegacyLongDate,
@@ -23,8 +22,7 @@ import {
 } from "./booking-domain";
 import { formatServiceDuration, formatServicePrice } from "@/features/public/public-content";
 import type { BookingDraft, BookingPayment } from "./booking-types";
-import { readMigratedLegacyDatabase } from "@/lib/storage/legacy-migration";
-import { writeLegacyDatabase, writeLegacyLastPhone } from "@/lib/storage/legacy-storage";
+import { dataRepositories, SlotUnavailableError } from "@/lib/data";
 import type { LegacyAppointment, LegacyDatabase } from "@/types/legacy-database";
 import "./booking.css";
 
@@ -131,10 +129,9 @@ export default function BookingFlow({ initialServiceId = null }: BookingFlowProp
 
   useEffect(() => {
     let active = true;
-    void readMigratedLegacyDatabase()
-      .then((saved) => {
+    void dataRepositories.booking.getSnapshot()
+      .then((nextDatabase) => {
         if (!active) return;
-        const nextDatabase = saved ?? createFreshLegacyDatabase();
         setDatabase(nextDatabase);
         if (initialServiceId && getService(nextDatabase, initialServiceId)) {
           setDraft((current) => ({ ...current, servicoId: initialServiceId }));
@@ -195,29 +192,18 @@ export default function BookingFlow({ initialServiceId = null }: BookingFlowProp
     setFlowError(null);
 
     try {
-      const latestDatabase = await readMigratedLegacyDatabase() ?? database;
-      const latestService = getService(latestDatabase, draft.servicoId);
-      if (!latestService) throw new Error("Este serviço não está mais disponível.");
-
-      const latestDuration = getEffectiveServiceDuration(latestDatabase, latestService);
-      const currentSlots = getAvailableSlots(latestDatabase, draft.data, latestDuration);
-      if (!currentSlots.includes(draft.hora)) {
-        updateDraft({ hora: null });
-        goTo(2);
-        setFlowError("Esse horário acabou de ser ocupado. Escolha outro horário.");
-        return;
-      }
-
-      const result = appendLegacyAppointment(latestDatabase, draft);
-      await writeLegacyDatabase(result.database);
-      try {
-        writeLegacyLastPhone(result.appointment.telDigits);
-      } catch {
-        // The appointment record is saved even if remembering the phone is unavailable.
-      }
+      const result = await dataRepositories.booking.createAppointment(draft, database);
+      // The appointment record is saved even if remembering the phone is unavailable.
+      dataRepositories.clientDevice.rememberPhone(result.appointment.telDigits);
       setDatabase(result.database);
       setCompleted({ database: result.database, appointment: result.appointment });
     } catch (error) {
+      if (error instanceof SlotUnavailableError) {
+        updateDraft({ hora: null });
+        goTo(2);
+        setFlowError(error.message);
+        return;
+      }
       setFlowError(error instanceof Error ? error.message : "Não foi possível salvar a solicitação.");
     } finally {
       setSubmitting(false);

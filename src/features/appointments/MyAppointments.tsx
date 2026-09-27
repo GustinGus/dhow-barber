@@ -3,7 +3,6 @@ import { AlertCircle, ArrowLeft, CalendarDays, ChevronDown, Info, Search } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  createFreshLegacyDatabase,
   formatLegacyDate,
   formatLegacyLongDate,
   getLocalDateKey,
@@ -11,12 +10,10 @@ import {
   maskLegacyPhone,
 } from "@/features/booking/booking-domain";
 import { formatServiceDuration, formatServicePrice } from "@/features/public/public-content";
-import { readMigratedLegacyDatabase } from "@/lib/storage/legacy-migration";
-import { readLegacyLastPhone, writeLegacyDatabase, writeLegacyLastPhone } from "@/lib/storage/legacy-storage";
+import { dataRepositories } from "@/lib/data";
 import type { LegacyAppointment, LegacyDatabase } from "@/types/legacy-database";
 import {
   canClientCancel,
-  cancelClientAppointment,
   findClientAppointments,
   getAppointmentStatusLabel,
   getPhoneDigits,
@@ -25,23 +22,15 @@ import {
 import "@/features/booking/booking.css";
 import "./appointments.css";
 
-function readLastPhone(): string {
-  try {
-    return readLegacyLastPhone();
-  } catch {
-    return "";
-  }
-}
-
 export default function MyAppointments() {
   const [database, setDatabase] = useState<LegacyDatabase | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [phone, setPhone] = useState(() => maskLegacyPhone(readLastPhone()));
+  const [phone, setPhone] = useState(() => maskLegacyPhone(dataRepositories.clientDevice.getLastPhone()));
   const [phoneError, setPhoneError] = useState<string | null>(null);
   // Like the legacy page, a remembered phone is searched as soon as the screen opens.
   const [searchedDigits, setSearchedDigits] = useState<string | null>(() => {
-    const digits = getPhoneDigits(readLastPhone());
+    const digits = getPhoneDigits(dataRepositories.clientDevice.getLastPhone());
     return isSearchablePhone(digits) ? digits : null;
   });
   const [openId, setOpenId] = useState<string | null>(null);
@@ -52,9 +41,9 @@ export default function MyAppointments() {
 
   useEffect(() => {
     let active = true;
-    void readMigratedLegacyDatabase()
-      .then((saved) => {
-        if (active) setDatabase(saved ?? createFreshLegacyDatabase());
+    void dataRepositories.clientAppointments.getSnapshot()
+      .then((snapshot) => {
+        if (active) setDatabase(snapshot);
       })
       .catch(() => {
         if (active) setLoadError("Não foi possível ler os agendamentos salvos neste navegador.");
@@ -83,11 +72,8 @@ export default function MyAppointments() {
     }
 
     setPhoneError(null);
-    try {
-      writeLegacyLastPhone(digits);
-    } catch {
-      // The search still works when the browser blocks storage.
-    }
+    // The search still works when the browser blocks storage.
+    dataRepositories.clientDevice.rememberPhone(digits);
     setSearchedDigits(digits);
   }
 
@@ -97,11 +83,7 @@ export default function MyAppointments() {
     setActionError(null);
 
     try {
-      // Re-read so a change made meanwhile (e.g. by the barber) is not overwritten.
-      const latest = await readMigratedLegacyDatabase();
-      if (!latest) throw new Error("Este agendamento não foi encontrado.");
-      const updated = cancelClientAppointment(latest, appointmentId);
-      await writeLegacyDatabase(updated);
+      const updated = await dataRepositories.clientAppointments.cancelAppointment(appointmentId);
       setDatabase(updated);
       setConfirmingId(null);
       setNotice("Agendamento cancelado.");
