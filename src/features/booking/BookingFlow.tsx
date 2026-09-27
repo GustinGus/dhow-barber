@@ -23,11 +23,8 @@ import {
 } from "./booking-domain";
 import { formatServiceDuration, formatServicePrice } from "@/features/public/public-content";
 import type { BookingDraft, BookingPayment } from "./booking-types";
-import {
-  readLegacyDatabase,
-  writeLegacyDatabase,
-  writeLegacyLastPhone,
-} from "@/lib/storage/legacy-storage";
+import { readMigratedLegacyDatabase } from "@/lib/storage/legacy-migration";
+import { writeLegacyDatabase, writeLegacyLastPhone } from "@/lib/storage/legacy-storage";
 import type { LegacyAppointment, LegacyDatabase } from "@/types/legacy-database";
 import "./booking.css";
 
@@ -134,7 +131,7 @@ export default function BookingFlow({ initialServiceId = null }: BookingFlowProp
 
   useEffect(() => {
     let active = true;
-    void readLegacyDatabase()
+    void readMigratedLegacyDatabase()
       .then((saved) => {
         if (!active) return;
         const nextDatabase = saved ?? createFreshLegacyDatabase();
@@ -198,7 +195,7 @@ export default function BookingFlow({ initialServiceId = null }: BookingFlowProp
     setFlowError(null);
 
     try {
-      const latestDatabase = await readLegacyDatabase() ?? database;
+      const latestDatabase = await readMigratedLegacyDatabase() ?? database;
       const latestService = getService(latestDatabase, draft.servicoId);
       if (!latestService) throw new Error("Este serviço não está mais disponível.");
 

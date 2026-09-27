@@ -39,6 +39,7 @@ describe("public landing page", () => {
   it("loads saved legacy services and portfolio without writing to storage", async () => {
     const database = structuredClone(fixture);
     database.config.nome = "Dhow Barber Teste";
+    database.dataVersion = 2;
     database.servicos = [
       {
         id: "legacy-service",
@@ -65,6 +66,31 @@ describe("public landing page", () => {
 
      expect(await screen.findByText("Serviço legado")).toBeTruthy();
      expect(screen.getByText("Foto já cadastrada")).toBeTruthy();
+    expect(window.localStorage.getItem(LEGACY_STORAGE_KEYS.database)).toBe(originalJson);
+  });
+
+  it("shows v1 services the same way the legacy migration does, without writing", async () => {
+    const database = structuredClone(fixture);
+    delete database.dataVersion;
+    database.config.nome = "Dhow Barber V1";
+    database.servicos = [
+      { id: "s2", nome: "Barba", desc: "", preco: 25, duracao: 30, ativo: true },
+    ];
+    const originalJson = JSON.stringify(database);
+    window.localStorage.setItem(LEGACY_STORAGE_KEYS.database, originalJson);
+
+    render(<PublicLandingPage />);
+
+    await waitFor(() => expect(screen.getAllByText(/Dhow Barber V1/).length).toBeGreaterThan(0));
+    const serviceLinks = [...document.querySelectorAll(".service-list .service-link")];
+    expect(serviceLinks.map((link) => link.getAttribute("aria-label"))).toEqual([
+      "Agendar Corte de cabelo",
+      "Agendar Corte + Sobrancelha",
+      "Agendar Barba",
+      "Agendar Corte + Barba",
+      "Agendar Sobrancelha",
+      "Agendar Coloração",
+    ]);
     expect(window.localStorage.getItem(LEGACY_STORAGE_KEYS.database)).toBe(originalJson);
   });
 

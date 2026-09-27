@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import BookingFlow from "@/features/booking/BookingFlow";
 import PublicLandingPage from "@/features/public/PublicLandingPage";
+import {
+  getHashRoute,
+  getLegacyPageUrl,
+  getLegacySectionId,
+  isLegacyRoute,
+  replaceLocation,
+} from "./legacy-routes";
 
-export default function App() {
+interface AppProps {
+  navigate?: (url: string) => void;
+}
+
+export default function App({ navigate = replaceLocation }: AppProps) {
   const [hash, setHash] = useState(() => window.location.hash);
 
   useEffect(() => {
@@ -11,7 +22,24 @@ export default function App() {
     return () => window.removeEventListener("hashchange", updateHash);
   }, []);
 
-  const route = hash.replace(/^#/, "");
+  const legacyRoute = isLegacyRoute(hash);
+  const sectionId = getLegacySectionId(hash);
+
+  useEffect(() => {
+    if (legacyRoute) navigate(getLegacyPageUrl(hash));
+  }, [hash, legacyRoute, navigate]);
+
+  useEffect(() => {
+    if (!sectionId) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView?.({ behavior: "smooth" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [sectionId]);
+
+  if (legacyRoute) return null;
+
+  const route = getHashRoute(hash);
   const [path, query = ""] = route.split("?");
 
   if (path.startsWith("/agendar")) {

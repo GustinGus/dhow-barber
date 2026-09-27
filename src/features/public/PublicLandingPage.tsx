@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { readLegacyDatabase } from "@/lib/storage/legacy-storage";
+import { readMigratedLegacyDatabase } from "@/lib/storage/legacy-migration";
 import AboutSection from "./components/AboutSection";
 import HeroSection from "./components/HeroSection";
 import LocationSection from "./components/LocationSection";
@@ -16,7 +16,7 @@ export default function PublicLandingPage() {
   useEffect(() => {
     let active = true;
 
-    void readLegacyDatabase()
+    void readMigratedLegacyDatabase()
       .then((database) => {
         if (active) {
           setContent(toPublicSiteContent(database));

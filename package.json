@@ -2,10 +2,13 @@
   "name": "dhow-barber",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
-    "dev": "vite --open /modernized.html",
+    "dev": "vite --open",
     "build": "vite build",
-    "preview": "vite preview --open /modernized.html",
+    "preview": "vite preview --open",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -1,3 +1,4 @@
+import { getLegacyPageUrl } from "@/app/legacy-routes";
 import type { PublicSiteContent } from "../public-content";
 
 export default function PublicFooter({ content }: { content: PublicSiteContent }) {
@@ -9,8 +10,8 @@ export default function PublicFooter({ content }: { content: PublicSiteContent }
           <p>{content.config.bairro} · {content.config.cidade}</p>
           <nav aria-label="Links do rodapé">
             <a href="#/agendar">Agendar horário</a>
-            <a href="/#/meus">Meus agendamentos</a>
-            <a href="/#/admin">Área do barbeiro</a>
+            <a href={getLegacyPageUrl("#/meus")}>Meus agendamentos</a>
+            <a href={getLegacyPageUrl("#/admin")}>Área do barbeiro</a>
           </nav>
         </div>
         <div className="footer-meta">

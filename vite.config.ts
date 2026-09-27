@@ -13,9 +13,4 @@ export default defineConfig({
       "@": path.resolve(projectRoot, "src"),
     },
   },
-  build: {
-    rollupOptions: {
-      input: path.resolve(projectRoot, "modernized.html"),
-    },
-  },
 });

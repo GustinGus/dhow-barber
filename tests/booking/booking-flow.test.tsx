@@ -82,6 +82,11 @@ describe("React booking flow", () => {
     expect(created.codigo).toMatch(/^DB-[A-Z0-9]{4}$/);
     expect(created.criadoEm).toBeTruthy();
     expect(saved.campoLegadoDesconhecido).toEqual({ manter: true });
+    // The fixture has no dataVersion, so it is saved already migrated, as the legacy page would do.
+    expect(saved.dataVersion).toBe(2);
+    expect(saved.servicos.map((service) => service.id)).toEqual(["s1", "s2", "s3", "s4", "s5", "s6"]);
+    expect(saved.servicos[0].duracao).toBe(45);
+    expect(saved.agendamentos.slice(0, -1)).toEqual(fixture.agendamentos);
     expect(window.localStorage.getItem(LEGACY_STORAGE_KEYS.lastPhone)).toBe("11912345678");
   });
 
