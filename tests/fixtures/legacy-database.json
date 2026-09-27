@@ -1,0 +1,99 @@
+{
+  "config": {
+    "nome": "Dhow Barber",
+    "endereco": "R. Profa. Olga Nilza Dos Santos Machado, 24",
+    "bairro": "Vista Alegre",
+    "cidade": "Jundiaí - SP",
+    "cep": "13214-442",
+    "telefone": "(11) 94146-5958",
+    "telefoneRaw": "+5511941465958",
+    "whatsapp": "5511941465958",
+    "instagram": "https://www.instagram.com/dhowbarber_/",
+    "canal": "whatsapp",
+    "canalOutro": "",
+    "senha": "dhow2026",
+    "nota": "5,0",
+    "avaliacoes": 42
+  },
+  "servicos": [
+    {
+      "id": "s1",
+      "nome": "Corte de cabelo",
+      "desc": "",
+      "preco": 40,
+      "duracao": 45,
+      "ativo": true
+    },
+    {
+      "id": "s6",
+      "nome": "Coloração",
+      "desc": "",
+      "preco": "Verificar com o Dhow",
+      "duracao": null,
+      "ativo": true
+    }
+  ],
+  "horarios": {
+    "livre": true,
+    "livreIni": "08:00",
+    "livreFim": "20:00",
+    "configurado": true,
+    "intervalo": 30,
+    "almoco": {
+      "ativo": true,
+      "ini": "12:00",
+      "fim": "13:00"
+    },
+    "dias": [
+      { "aberto": false, "ini": "09:00", "fim": "19:00" },
+      { "aberto": true, "ini": "09:00", "fim": "18:00" },
+      { "aberto": true, "ini": "09:00", "fim": "18:00" },
+      { "aberto": true, "ini": "09:00", "fim": "18:00" },
+      { "aberto": true, "ini": "09:00", "fim": "18:00" },
+      { "aberto": true, "ini": "09:00", "fim": "18:00" },
+      { "aberto": true, "ini": "09:00", "fim": "14:00" }
+    ]
+  },
+  "bloqueios": [
+    {
+      "id": "b1",
+      "dataIni": "2026-10-12",
+      "dataFim": "2026-10-12",
+      "diaTodo": true,
+      "ini": "12:00",
+      "fim": "13:00",
+      "motivo": "Feriado"
+    }
+  ],
+  "agendamentos": [
+    {
+      "id": "a1",
+      "codigo": "DB-A123",
+      "cliente": "Cliente Exemplo",
+      "telefone": "(11) 90000-0000",
+      "telDigits": "11900000000",
+      "servicoId": "s1",
+      "data": "2026-10-05",
+      "hora": "10:00",
+      "duracao": 45,
+      "pagamento": "PIX",
+      "obs": "",
+      "status": "pendente",
+      "criadoEm": "2026-09-27T12:00:00.000Z"
+    }
+  ],
+  "portfolio": [
+    {
+      "id": "p1",
+      "image": "data:image/jpeg;base64,/9j/example",
+      "caption": "Corte social",
+      "instagramUrl": "https://www.instagram.com/p/example/",
+      "ativo": true
+    }
+  ],
+  "portfolioRemovidas": [],
+  "depoimentos": ["Ótimo profissional, super recomendo!"],
+  "campoLegadoDesconhecido": {
+    "manter": true
+  }
+}
