@@ -47,6 +47,15 @@ export interface ClientDeviceStore {
   rememberPhone(phoneDigits: string): void;
 }
 
+/**
+ * Admin operations, planned for the Admin phase with Supabase Auth. Not implemented yet:
+ * they depend on an authenticated admin (private.admin_users) and must go through RLS and
+ * `admin_set_appointment_status`, never through the service_role key.
+ */
+export interface AdminAppointmentsRepository {
+  setAppointmentStatus(appointmentId: string, status: string): Promise<void>;
+}
+
 export interface DataRepositories {
   siteContent: SiteContentRepository;
   booking: BookingRepository;
