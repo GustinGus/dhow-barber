@@ -10,10 +10,10 @@ export function getHashRoute(hash: string): string {
   return hash.replace(/^#/, "");
 }
 
-/** Same rule as the legacy router (`path.startsWith('/meus' | '/admin')`) and the return script in legado.html. */
+/** Same rule as the legacy router (`path.startsWith('/admin')`) and the return script in legado.html. */
 export function isLegacyRoute(hash: string): boolean {
   const path = (getHashRoute(hash) || "/").split("?")[0];
-  return /^\/(meus|admin)/.test(path);
+  return /^\/admin/.test(path);
 }
 
 export function getLegacyPageUrl(hash: string): string {

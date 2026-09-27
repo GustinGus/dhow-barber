@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ptBR } from "date-fns/locale";
-import { AlertCircle, ArrowLeft, Check, Clock3, Copy, Scissors } from "lucide-react";
+import { AlertCircle, ArrowLeft, CalendarCheck, Check, Clock3, Copy, Scissors } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -460,6 +460,7 @@ function BookingSuccess({
             Enviar pelo {destination.name}
           </a>
           <Button variant="outline" type="button" onClick={() => void onCopy(message)}><Copy aria-hidden="true" /> {copied ? "Mensagem copiada" : "Copiar mensagem"}</Button>
+          <a className="booking-success__secondary" href="#/meus"><CalendarCheck aria-hidden="true" /> Ver meu agendamento</a>
           <a className="booking-back-link" href="#/">Voltar para o início</a>
         </div>
         <p className="booking-help">Aguarde a confirmação do barbeiro.</p>

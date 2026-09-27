@@ -88,6 +88,7 @@ describe("React booking flow", () => {
     expect(saved.servicos[0].duracao).toBe(45);
     expect(saved.agendamentos.slice(0, -1)).toEqual(fixture.agendamentos);
     expect(window.localStorage.getItem(LEGACY_STORAGE_KEYS.lastPhone)).toBe("11912345678");
+    expect(screen.getByRole("link", { name: "Ver meu agendamento" }).getAttribute("href")).toBe("#/meus");
   });
 
   it("shows a textual service price in the review in the legacy position", async () => {

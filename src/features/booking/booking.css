@@ -536,6 +536,33 @@
   align-items: center;
 }
 
+.booking-success__secondary {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border: 1px solid rgb(20 18 14 / 30%);
+  border-radius: 3px;
+  color: var(--brand-ink, #14120e);
+  font-family: "Jost", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.booking-success__secondary:hover {
+  border-color: var(--brand-ink, #14120e);
+  background: rgb(20 18 14 / 5%);
+}
+
+.booking-success__secondary svg {
+  width: 16px;
+  height: 16px;
+  color: var(--brand-sage, #646755);
+}
+
 .booking-success__send:hover,
 .booking-actions > button:last-child:hover {
   background: #f08b2c;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MyAppointments from "@/features/appointments/MyAppointments";
 import BookingFlow from "@/features/booking/BookingFlow";
 import PublicLandingPage from "@/features/public/PublicLandingPage";
 import {
@@ -44,6 +45,10 @@ export default function App({ navigate = replaceLocation }: AppProps) {
 
   if (path.startsWith("/agendar")) {
     return <BookingFlow key={route} initialServiceId={new URLSearchParams(query).get("s")} />;
+  }
+
+  if (path.startsWith("/meus")) {
+    return <MyAppointments />;
   }
 
   return <PublicLandingPage />;

@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <!-- dhow:legado-retorno:inicio -->
 <script>
-/* Página legada preservada: atende somente #/meus e #/admin.
-   Qualquer outra rota (início, seções, agendamento) volta para o site React em "/". */
+/* Página legada preservada: atende somente #/admin.
+   Qualquer outra rota (início, seções, agendamento, meus agendamentos) volta para o site React em "/". */
 (function(){
   function rotaLegada(){
     var rota=(location.hash.replace(/^#/,'')||'/').split('?')[0];
-    return /^\/(meus|admin)/.test(rota);
+    return /^\/admin/.test(rota);
   }
   if(!rotaLegada()) location.replace('/'+location.hash);
   window.addEventListener('hashchange',function(e){
