@@ -192,7 +192,7 @@ select is((select changed_by from public.appointment_status_history
   where appointment_id = (current_setting('t.e')::jsonb ->> 'id')::uuid and new_status = 'concluido'),
   '00000000-0000-0000-0000-00000000ad01'::uuid, 'histórico registra qual Admin mudou');
 select throws_ok($$ select public.admin_set_appointment_status((current_setting('t.a')::jsonb ->> 'id')::uuid, 'pendente') $$,
-  'P0001', 'SLOT_TAKEN', 'Admin não reabre A: o horário 10:00 já é de D');
+  'P0001', 'INVALID_STATUS_TRANSITION', 'Admin não reabre A: cancelado é final');
 
 -- ---------------------------------------------------------------------------
 -- Antecedência mínima e grade semanal
